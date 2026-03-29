@@ -185,9 +185,13 @@ function el(tag, attrs={}, ...children) {
     else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
     else e.setAttribute(k, v);
   }
-  for (const c of children.flat()) {
-    if (c==null) continue;
-    e.appendChild(typeof c==='string' ? document.createTextNode(c) : c);
+  for (const c of children.flat(Infinity)) {
+    if (c==null || c===false || c===undefined) continue;
+    if (typeof c === 'string' || typeof c === 'number') {
+      e.appendChild(document.createTextNode(String(c)));
+    } else if (c instanceof Node) {
+      e.appendChild(c);
+    }
   }
   return e;
 }
@@ -659,9 +663,9 @@ function renderConversation(w) {
   return div({style:{padding:'0 1.2rem 2rem'}},
     div({style:{background:'#111009',border:'1px solid #1E1C18',padding:'0.9rem',marginBottom:'0.8rem',fontSize:'0.85rem',lineHeight:1.5}},
       el('strong',{},'📍 '+data.scenario),
-      data.tips?.length ? div({style:{display:'flex',flexWrap:'wrap',gap:'0.4rem',marginTop:'0.6rem'}},
+      ...(data.tips?.length ? [div({style:{display:'flex',flexWrap:'wrap',gap:'0.4rem',marginTop:'0.6rem'}},
         ...data.tips.map(t=>span({style:{fontSize:'0.72rem',padding:'0.2rem 0.5rem',border:'1px solid #2A2825',cursor:'pointer',color:'#AAA'},onClick:()=>speak(t)},'🔊 '+t))
-      ) : null
+      )] : [])
     ),
     chatBox,
     div({style:{display:'flex',gap:'0.5rem',marginBottom:'0.7rem'}}, toggleVoice, toggleType),
