@@ -125,46 +125,15 @@ function speak(text, rate=0.88) {
 }
 
 // ─── Claude API ──────────────────────────────────────────────────────────────
-function getApiKey() {
-  return localStorage.getItem('a2_apikey') || '';
-}
-
 async function callClaude(system, userMsg, maxTokens=800) {
-  const key = getApiKey();
-  if (!key) { showKeyPrompt(); throw new Error('No API key'); }
   const messages = Array.isArray(userMsg) ? userMsg : [{role:'user',content:userMsg}];
-  const r = await fetch('https://api.anthropic.com/v1/messages',{
+  const r = await fetch('https://sparkling-frog-5ddd.mmabobmasters.workers.dev',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,system,messages})
   });
   const d = await r.json();
-  if (d.error) { if(d.error.type==='authentication_error'){localStorage.removeItem('a2_apikey');showKeyPrompt();throw new Error('Bad API key');} throw new Error(d.error.message); }
   return d.content?.[0]?.text || '';
-}
-
-function showKeyPrompt() {
-  const existing = document.getElementById('keyprompt');
-  if (existing) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'keyprompt';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:Palatino,serif';
-  overlay.innerHTML = `
-    <div style="background:#111009;border:1px solid #2A2825;padding:2rem;max-width:380px;width:90%;text-align:center">
-      <div style="font-size:1.5rem;font-weight:700;font-style:italic;margin-bottom:0.5rem;color:#EDE8DF">habla <span style="color:#C0392B">español.</span></div>
-      <p style="color:#888;font-size:0.85rem;line-height:1.6;margin-bottom:1.5rem">Enter your Anthropic API key to start.<br>It saves locally and is never shared.</p>
-      <input id="keyinput" type="password" placeholder="sk-ant-..." style="width:100%;background:#0C0B09;border:1px solid #2A2825;color:#EDE8DF;padding:0.7rem;font-family:Palatino,serif;font-size:0.9rem;margin-bottom:1rem;box-sizing:border-box"/>
-      <button onclick="
-        const k=document.getElementById('keyinput').value.trim();
-        if(!k.startsWith('sk-')){alert('Invalid key — should start with sk-ant-');return;}
-        localStorage.setItem('a2_apikey',k);
-        document.getElementById('keyprompt').remove();
-        render();
-      " style="width:100%;background:#C0392B;color:#fff;border:none;padding:0.8rem;font-family:Palatino,serif;font-size:1rem;cursor:pointer;font-weight:700">Start Learning →</button>
-      <p style="color:#555;font-size:0.72rem;margin-top:1rem">Get your key at console.anthropic.com</p>
-    </div>
-  `;
-  document.body.appendChild(overlay);
 }
 
 async function loadExercise(lesson, mode) {
@@ -216,13 +185,9 @@ function el(tag, attrs={}, ...children) {
     else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
     else e.setAttribute(k, v);
   }
-  for (const c of children.flat(Infinity)) {
-    if (c==null || c===false || c===undefined) continue;
-    if (typeof c === 'string' || typeof c === 'number') {
-      e.appendChild(document.createTextNode(String(c)));
-    } else if (c instanceof Node) {
-      e.appendChild(c);
-    }
+  for (const c of children.flat()) {
+    if (c==null) continue;
+    e.appendChild(typeof c==='string' ? document.createTextNode(c) : c);
   }
   return e;
 }
@@ -694,9 +659,9 @@ function renderConversation(w) {
   return div({style:{padding:'0 1.2rem 2rem'}},
     div({style:{background:'#111009',border:'1px solid #1E1C18',padding:'0.9rem',marginBottom:'0.8rem',fontSize:'0.85rem',lineHeight:1.5}},
       el('strong',{},'📍 '+data.scenario),
-      ...(data.tips?.length ? [div({style:{display:'flex',flexWrap:'wrap',gap:'0.4rem',marginTop:'0.6rem'}},
+      data.tips?.length ? div({style:{display:'flex',flexWrap:'wrap',gap:'0.4rem',marginTop:'0.6rem'}},
         ...data.tips.map(t=>span({style:{fontSize:'0.72rem',padding:'0.2rem 0.5rem',border:'1px solid #2A2825',cursor:'pointer',color:'#AAA'},onClick:()=>speak(t)},'🔊 '+t))
-      )] : [])
+      ) : null
     ),
     chatBox,
     div({style:{display:'flex',gap:'0.5rem',marginBottom:'0.7rem'}}, toggleVoice, toggleType),
@@ -705,7 +670,7 @@ function renderConversation(w) {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-if (!getApiKey()) { showKeyPrompt(); } else { render(); }
+render();
 </script>
 </body>
 </html>
